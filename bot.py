@@ -14,9 +14,11 @@ Features:
 
 import asyncio
 import html
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import logging
 import os
 import re
+import threading
 from typing import Any, Dict, List, Optional
 import urllib.parse
 
@@ -101,7 +103,8 @@ def get_bot_token() -> str:
     Raises ValueError if missing, empty, or placeholder.
     """
     load_dotenv()
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    raw_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    token = raw_token.strip().strip('"').strip("'")
     if not token or token == "your_telegram_bot_token_here":
         raise ValueError(
             "TELEGRAM_BOT_TOKEN is missing or not configured in environment or .env file."
@@ -632,48 +635,46 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 # Application Initialization & Entry Point
 # ---------------------------------------------------------------------------
 
-async def start_health_server(app: Application) -> None:
+def start_background_health_server() -> None:
     """
-    Starts a minimal async HTTP health check server if the PORT environment variable
-    is defined (automatically provided by cloud platforms like Render).
-    Allows running the bot as a free Render Web Service.
+    Starts a lightweight, standards-compliant HTTP health check server in a background
+    daemon thread. This allows cloud platforms like Render (Free Web Service) to detect
+    an open HTTP port on 0.0.0.0:$PORT immediately upon container startup.
     """
-    port_str = os.getenv("PORT")
-    if not port_str:
-        return
-
+    port_str = os.getenv("PORT", "10000")
     try:
         port = int(port_str)
     except ValueError:
         port = 10000
 
-    async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        try:
-            await reader.readline()
-            body = b"OK - French Verb Conjugator Bot is running!\n"
-            header = (
-                f"HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/plain; charset=utf-8\r\n"
-                f"Content-Length: {len(body)}\r\n"
-                f"Connection: close\r\n\r\n"
-            ).encode("utf-8")
-            writer.write(header + body)
-            await writer.drain()
-        except Exception:
-            pass
-        finally:
-            try:
-                writer.close()
-                await writer.wait_closed()
-            except Exception:
-                pass
+    class HealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(b"OK - French Verb Conjugator Bot is running!\n")
 
-    try:
-        server = await asyncio.start_server(handle_client, "0.0.0.0", port)
-        logger.info("Health check HTTP server started on 0.0.0.0:%d (Render compatible)", port)
-        app.bot_data["health_server"] = server
-    except Exception as e:
-        logger.warning("Could not start health check HTTP server on port %d: %s", port, e)
+        def do_HEAD(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Connection", "close")
+            self.end_headers()
+
+        def log_message(self, format: str, *args: Any) -> None:
+            # Silence access logs to keep terminal / cloud output clean
+            pass
+
+    def run_server() -> None:
+        try:
+            server = HTTPServer(("0.0.0.0", port), HealthHandler)
+            logger.info("Health check HTTP server actively listening on 0.0.0.0:%d (Render ready)", port)
+            server.serve_forever()
+        except Exception as e:
+            logger.warning("Could not start background health server on port %d: %s", port, e)
+
+    thread = threading.Thread(target=run_server, daemon=True, name="health-check-server")
+    thread.start()
 
 
 def build_application(token: Optional[str] = None) -> Application:
@@ -694,7 +695,6 @@ def build_application(token: Optional[str] = None) -> Application:
         Application.builder()
         .token(token)
         .request(request)
-        .post_init(start_health_server)
         .build()
     )
 
@@ -716,6 +716,9 @@ def main() -> None:
         level=logging.INFO,
     )
     logger.info("Initializing French Verb Conjugator Bot...")
+
+    # Start health check server in daemon thread immediately so Render's port scan passes
+    start_background_health_server()
 
     try:
         app = build_application()
