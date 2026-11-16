@@ -57,6 +57,11 @@ try:
         format_student_study_card,
         format_examples_and_synonyms,
     )
+    from french_verb_conjugator_bot.providers import (
+        BaseConjugationProvider,
+        get_provider,
+        set_provider,
+    )
 except ImportError:
     from lingolia import (
         LingoliaScraper,
@@ -71,6 +76,11 @@ except ImportError:
         format_student_study_card,
         format_examples_and_synonyms,
     )
+    from providers import (
+        BaseConjugationProvider,
+        get_provider,
+        set_provider,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -79,22 +89,14 @@ DIVIDER = "━━━━━━━━━━━━━━━━━━━━"
 SUPPORTED_MOODS = ["Indicatif", "Conditionnel", "Subjonctif", "Impératif"]
 DEFAULT_LINGOLIA_URL = "https://francais.lingolia.com/en/grammar/conjugator"
 
-# Global scraper instance
-_SCRAPER: Optional[LingoliaScraper] = None
+def get_scraper() -> BaseConjugationProvider:
+    """Returns the active conjugation provider (pluggable architecture)."""
+    return get_provider()
 
 
-def get_scraper() -> LingoliaScraper:
-    """Returns singleton LingoliaScraper instance."""
-    global _SCRAPER
-    if _SCRAPER is None:
-        _SCRAPER = LingoliaScraper()
-    return _SCRAPER
-
-
-def set_scraper(scraper: LingoliaScraper) -> None:
-    """Sets the scraper instance (useful for testing or mocking)."""
-    global _SCRAPER
-    _SCRAPER = scraper
+def set_scraper(provider: Any) -> None:
+    """Sets the active provider (useful for testing or mocking)."""
+    set_provider(provider)
 
 
 def get_bot_token() -> str:

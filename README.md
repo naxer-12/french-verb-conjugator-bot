@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-v21%2B-0088cc.svg)](https://core.telegram.org/bots/api)
 [![Data Source](https://img.shields.io/badge/Data%20Source-Lingolia%20Fran%C3%A7ais-green.svg)](https://francais.lingolia.com/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-28%20passed-brightgreen.svg)](test_bot_logic.py)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-33%20passed-brightgreen.svg)](test_bot_logic.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A high-performance, feature-complete Telegram bot (`@verb_conjugator_bot`) that conjugates any French verb across all moods and tenses. It replicates the complete feature set of **Lingolia Français** with instant inline keyboard navigation, live inline query autocomplete, safe message chunking, and intelligent typo/fallback suggestions.
@@ -84,19 +84,20 @@ Built with pure Python standard library scraping (`urllib`, `http.cookiejar`, `h
                            │
                            ▼
 ┌────────────────────────────────────────────────────────┐
-│             Lingolia Scraper Engine                    │
-│  - Normalizer: curly apostrophe, strip, lowercase      │
-│  - CookieJar & User-Agent Session                      │
-│  - HTMLParser: extracts non-conjugated + 4 moods       │
-│  - Autocomplete endpoint (/ajax/search.php)            │
-│  - In-memory LRU Cache (1,024 items)                   │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│            francais.lingolia.com                       │
-└────────────────────────────────────────────────────────┘
+│             Pluggable Provider Architecture            │
+│                 (BaseConjugationProvider)              │
+├──────────────────────────┬─────────────────────────────┤
+│ • HybridProvider (Def.)  │ Lingolia tables + Pedagogy  │
+│ • LingoliaProvider       │ Pure Lingolia tables        │
+│ • FrenchDictionaryProv.  │ frenchdictionary.com / CF   │
+└──────────────────────────┴─────────────────────────────┘
 ```
+
+### Pluggable Providers
+You can select the active conjugation and vocabulary engine via the `CONJUGATION_PROVIDER` environment variable:
+- `CONJUGATION_PROVIDER=hybrid` (Default): Uses Lingolia's reliable conjugation tables combined with our bilingual English-French pedagogical engine, synonyms, and contextual example sentences.
+- `CONJUGATION_PROVIDER=lingolia`: Pure Lingolia Français scraper.
+- `CONJUGATION_PROVIDER=frenchdictionary`: frenchdictionary.com provider (automatically falls back if Cloudflare challenge is encountered).
 
 ---
 
@@ -110,11 +111,20 @@ french_verb_conjugator_bot/
 ├── __init__.py           # Package indicator
 ├── bot.py                # Main bot application and Telegram event handlers
 ├── lingolia.py           # Pure standard library Lingolia scraper & parser
+├── pedagogy.py           # Bilingual student study guides, synonyms & examples
+├── providers/            # Pluggable provider architecture
+│   ├── base.py           # BaseConjugationProvider interface
+│   ├── factory.py        # get_provider() factory
+│   ├── hybrid_provider.py# Lingolia + Bilingual Pedagogy
+│   ├── lingolia_provider.py
+│   └── french_dictionary_provider.py
 ├── requirements.txt      # Production dependencies
 ├── Dockerfile            # Multi-platform container configuration
+├── render.yaml           # 1-click Render blueprint specification
 ├── README.md             # Complete documentation and setup manual
 ├── test_scraper.py       # Unit tests for scraper, normalization & caching
-└── test_bot_logic.py     # Unit tests for message formatting, chunking & handlers
+├── test_bot_logic.py     # Unit tests for message formatting, chunking & handlers
+└── test_providers.py     # Unit tests for pluggable providers
 ```
 
 ---

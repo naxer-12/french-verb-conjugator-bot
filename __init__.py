@@ -24,6 +24,14 @@ from .pedagogy import (
     format_student_study_card,
     format_examples_and_synonyms,
 )
+from .providers import (
+    BaseConjugationProvider,
+    LingoliaProvider,
+    FrenchDictionaryProvider,
+    HybridProvider,
+    get_provider,
+    set_provider,
+)
 
 __all__ = [
     "LingoliaScraper",
@@ -41,4 +49,10 @@ __all__ = [
     "get_verb_study_data",
     "format_student_study_card",
     "format_examples_and_synonyms",
+    "BaseConjugationProvider",
+    "LingoliaProvider",
+    "FrenchDictionaryProvider",
+    "HybridProvider",
+    "get_provider",
+    "set_provider",
 ]
