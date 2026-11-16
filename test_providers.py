@@ -35,13 +35,13 @@ except ImportError:
 class TestProviders(unittest.TestCase):
     """Test suite for the pluggable conjugation providers."""
 
-    def test_factory_default_is_hybrid(self):
-        """Test that default provider is HybridProvider."""
+    def test_factory_default_is_frenchdictionary(self):
+        """Test that default provider is FrenchDictionaryProvider."""
         with patch.dict(os.environ, {}, clear=True):
             set_provider(None)
             p = get_provider()
-            self.assertIsInstance(p, HybridProvider)
-            self.assertEqual(p.name, "hybrid")
+            self.assertIsInstance(p, FrenchDictionaryProvider)
+            self.assertEqual(p.name, "frenchdictionary")
 
     def test_factory_env_selection(self):
         """Test selecting provider via CONJUGATION_PROVIDER env var."""
@@ -85,7 +85,9 @@ class TestProviders(unittest.TestCase):
 
         # Calling get_conjugation should attempt request and fallback cleanly
         res = provider.get_conjugation("être")
-        self.assertEqual(res, {"verb": "être"})
+        self.assertIsNotNone(res)
+        self.assertEqual(res["verb"], "être")
+        self.assertIn("frenchdictionary.com", res["url"])
         mock_fallback.get_conjugation.assert_called_with("être")
 
     def test_hybrid_provider_enrichment(self):

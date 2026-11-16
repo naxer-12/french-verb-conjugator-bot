@@ -20,26 +20,26 @@ def get_provider(name: Optional[str] = None) -> BaseConjugationProvider:
     Priority:
     1. Explicit 'name' argument
     2. CONJUGATION_PROVIDER environment variable
-    3. Default: 'hybrid' (Lingolia + Pedagogical Study Engine)
+    3. Default: 'frenchdictionary' (FrenchDictionary.com + Pedagogical Engine)
     """
     global _ACTIVE_PROVIDER
+    default_name = "frenchdictionary"
     if name is None:
         if _ACTIVE_PROVIDER is not None:
             return _ACTIVE_PROVIDER
-        name = os.getenv("CONJUGATION_PROVIDER", "hybrid").strip().lower()
+        name = os.getenv("CONJUGATION_PROVIDER", default_name).strip().lower()
 
     key = name.lower()
-    if key in ("hybrid", "default"):
+    if key in ("frenchdictionary", "french_dict", "default"):
+        provider = FrenchDictionaryProvider()
+    elif key in ("hybrid",):
         provider = HybridProvider()
     elif key in ("lingolia", "lingolia_only"):
         provider = LingoliaProvider()
-    elif key in ("frenchdictionary", "french_dict"):
-        provider = FrenchDictionaryProvider()
     else:
-        # Fallback to hybrid
-        provider = HybridProvider()
+        provider = FrenchDictionaryProvider()
 
-    if _ACTIVE_PROVIDER is None and name == os.getenv("CONJUGATION_PROVIDER", "hybrid").strip().lower():
+    if _ACTIVE_PROVIDER is None and name == os.getenv("CONJUGATION_PROVIDER", default_name).strip().lower():
         _ACTIVE_PROVIDER = provider
 
     return provider

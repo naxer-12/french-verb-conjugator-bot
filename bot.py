@@ -296,7 +296,12 @@ def build_conjugation_keyboard(
     Active tab is marked with '✅ <Name>', inactive with '🔸 <Name>'.
     """
     clean_verb = normalize_verb(verb)
-    lingolia_url = url or f"{DEFAULT_LINGOLIA_URL}?verb={urllib.parse.quote(clean_verb)}"
+    default_url = f"https://www.frenchdictionary.com/conjugate/{urllib.parse.quote(clean_verb)}"
+    ext_url = url or default_url
+    if "frenchdictionary.com" in ext_url.lower():
+        ext_title = "🌐 FrenchDictionary"
+    else:
+        ext_title = "🌐 Lingolia"
 
     def btn_label(m: str, custom_label: Optional[str] = None) -> str:
         text = custom_label or m
@@ -342,8 +347,8 @@ def build_conjugation_keyboard(
             callback_data=f"all:{clean_verb}",
         ),
         InlineKeyboardButton(
-            text="🌐 Lingolia",
-            url=lingolia_url,
+            text=ext_title,
+            url=ext_url,
         ),
     ]
 

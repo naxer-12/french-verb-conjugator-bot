@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-v21%2B-0088cc.svg)](https://core.telegram.org/bots/api)
 [![Data Source](https://img.shields.io/badge/Data%20Source-Lingolia%20Fran%C3%A7ais-green.svg)](https://francais.lingolia.com/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-33%20passed-brightgreen.svg)](test_bot_logic.py)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-34%20passed-brightgreen.svg)](test_bot_logic.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A high-performance, feature-complete Telegram bot (`@verb_conjugator_bot`) that conjugates any French verb across all moods and tenses. It replicates the complete feature set of **Lingolia Français** with instant inline keyboard navigation, live inline query autocomplete, safe message chunking, and intelligent typo/fallback suggestions.
@@ -87,17 +87,17 @@ Built with pure Python standard library scraping (`urllib`, `http.cookiejar`, `h
 │             Pluggable Provider Architecture            │
 │                 (BaseConjugationProvider)              │
 ├──────────────────────────┬─────────────────────────────┤
-│ • HybridProvider (Def.)  │ Lingolia tables + Pedagogy  │
+│ • FrenchDictionary (Def.)│ frenchdictionary.com / Study│
+│ • HybridProvider         │ Lingolia tables + Pedagogy  │
 │ • LingoliaProvider       │ Pure Lingolia tables        │
-│ • FrenchDictionaryProv.  │ frenchdictionary.com / CF   │
 └──────────────────────────┴─────────────────────────────┘
 ```
 
 ### Pluggable Providers
 You can select the active conjugation and vocabulary engine via the `CONJUGATION_PROVIDER` environment variable:
-- `CONJUGATION_PROVIDER=hybrid` (Default): Uses Lingolia's reliable conjugation tables combined with our bilingual English-French pedagogical engine, synonyms, and contextual example sentences.
+- `CONJUGATION_PROVIDER=frenchdictionary` (Default): FrenchDictionary.com provider with direct website links, complete conjugation tables, bilingual English-French pedagogical engine, synonyms, and contextual example sentences.
+- `CONJUGATION_PROVIDER=hybrid`: Uses Lingolia's conjugation tables combined with our bilingual English-French pedagogical engine, synonyms, and example sentences.
 - `CONJUGATION_PROVIDER=lingolia`: Pure Lingolia Français scraper.
-- `CONJUGATION_PROVIDER=frenchdictionary`: frenchdictionary.com provider (automatically falls back if Cloudflare challenge is encountered).
 
 ---
 

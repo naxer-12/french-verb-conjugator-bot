@@ -250,6 +250,14 @@ class TestBotLogic(unittest.TestCase):
         self.assertEqual(url_buttons[0].text, "🌐 Lingolia")
         self.assertEqual(url_buttons[0].url, "https://example.com/parler")
 
+    def test_build_conjugation_keyboard_frenchdictionary_url_button(self):
+        """Test URL button creation for FrenchDictionary."""
+        kb = build_conjugation_keyboard("parler", url="https://www.frenchdictionary.com/conjugate/parler")
+        url_buttons = [b for row in kb.inline_keyboard for b in row if b.url]
+        self.assertEqual(len(url_buttons), 1)
+        self.assertEqual(url_buttons[0].text, "🌐 FrenchDictionary")
+        self.assertEqual(url_buttons[0].url, "https://www.frenchdictionary.com/conjugate/parler")
+
     def test_build_suggestions_keyboard(self):
         """Test candidate suggestion keyboard buttons."""
         suggestions = ["parler", "partir", "parvenir", "parcourir"]
