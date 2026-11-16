@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-v21%2B-0088cc.svg)](https://core.telegram.org/bots/api)
 [![Data Source](https://img.shields.io/badge/Data%20Source-Lingolia%20Fran%C3%A7ais-green.svg)](https://francais.lingolia.com/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-23%20passed-brightgreen.svg)](test_bot_logic.py)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-28%20passed-brightgreen.svg)](test_bot_logic.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A high-performance, feature-complete Telegram bot (`@verb_conjugator_bot`) that conjugates any French verb across all moods and tenses. It replicates the complete feature set of **Lingolia Français** with instant inline keyboard navigation, live inline query autocomplete, safe message chunking, and intelligent typo/fallback suggestions.
@@ -40,14 +40,23 @@ Built with pure Python standard library scraping (`urllib`, `http.cookiejar`, `h
 ## Features
 
 - **⚡ Instant Conjugation**: Send any French verb as a plain message (e.g., `aller`, `finir`, `se lever`) or use `/conj <verbe>`.
-- **🔍 Live Inline Autocomplete (`@verb_conjugator_bot <query>`)**: Type the bot handle in any private or group chat to receive instant live completion suggestions with verb details.
-- **📚 Complete Mood & Tense Coverage**:
+- **🔍 Live Inline Autocomplete (`@verb_conjugation_bot <query>`)**: Type the bot handle in any private or group chat to receive instant live completion suggestions with English translations and verb details.
+- **🎓 Bilingual Pedagogical Study Guide (`[ 🎓 Fiche Étudiant ]`)**:
+  - English translation, French meaning, verb classification (1er, 2ème, 3ème groupe), and CEFR proficiency level (A1-B2).
+  - Practical student study tips explaining irregular stems, silent endings (`-e, -es, -ent`), and auxiliary rules (`avoir` vs `être`).
+  - Clear bilingual overview of the 4 grammatical moods.
+- **💬 Synonyms & Bilingual Example Sentences (`[ 💬 Exemples & Synonymes ]`)**:
+  - High-frequency French synonyms with contextual English glosses.
+  - Numbered real-world example sentences across key tenses with side-by-side French and English translations.
+- **📚 Complete Mood & Tense Coverage with Formative Tooltips**:
+  - Every mood header displays a bilingual usage tooltip (e.g., *Factual & Objective / Réel & Factuel*).
+  - Every tense displays its practical purpose (e.g., *Présent • Current actions & habits*, *Passé composé • Completed past actions*).
   - **Formes non conjuguées**: Infinitif, Participe passé, Participe présent, Auxiliaire.
   - **Indicatif**: Présent, Passé composé, Imparfait, Plus-que-parfait, Passé simple, Passé antérieur, Futur simple, Futur antérieur.
   - **Conditionnel**: Présent, Passé (1re forme).
   - **Subjonctif**: Présent, Passé, Imparfait, Plus-que-parfait.
   - **Impératif**: Présent.
-- **🎛️ Interactive Inline Keyboard Tabs**: Switch moods with one tap without re-scraping (`[ Indicatif ]`, `[ Conditionnel ]`, `[ Subjonctif ]`, `[ Impératif ]`). Active mood is visually badged with `✅`.
+- **🎛️ Interactive Inline Keyboard Tabs**: Switch moods or study tabs with one tap without re-scraping (`[ Indicatif ]`, `[ Conditionnel ]`, `[ Subjonctif ]`, `[ Impératif ]`, `[ 💬 Exemples & Synonymes ]`, `[ 🎓 Fiche Étudiant ]`). Active tab is visually badged with `✅`.
 - **📜 "Tout afficher" (View All Moods)**: Displays all moods at once with automatic HTML-aware chunking respecting Telegram's 4,096 character limit.
 - **✨ Monospaced Column Alignment**: Subjects and conjugated stems are neatly aligned in `<code>` blocks for optimal readability on both mobile and desktop screens.
 - **🔄 Robust Input Normalization**: Automatically trims whitespace, lowers case, strips surrounding punctuation, normalizes typographic curly quotes (`’`, `‘` → `'`), and properly handles pronominal/reflexive verbs (`se laver`, `s'appeler`).

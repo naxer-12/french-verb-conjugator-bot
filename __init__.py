@@ -17,6 +17,13 @@ from .bot import (
     format_not_found_message,
     build_application,
 )
+from .pedagogy import (
+    MOOD_GUIDES,
+    TENSE_GUIDES,
+    get_verb_study_data,
+    format_student_study_card,
+    format_examples_and_synonyms,
+)
 
 __all__ = [
     "LingoliaScraper",
@@ -29,4 +36,9 @@ __all__ = [
     "build_suggestions_keyboard",
     "format_not_found_message",
     "build_application",
+    "MOOD_GUIDES",
+    "TENSE_GUIDES",
+    "get_verb_study_data",
+    "format_student_study_card",
+    "format_examples_and_synonyms",
 ]

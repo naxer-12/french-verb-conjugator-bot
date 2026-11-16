@@ -27,6 +27,12 @@ try:
         SUPPORTED_MOODS,
     )
     from french_verb_conjugator_bot.lingolia import normalize_verb, get_conjugation
+    from french_verb_conjugator_bot.pedagogy import (
+        get_verb_study_data,
+        format_student_study_card,
+        format_examples_and_synonyms,
+        infer_verb_group,
+    )
 except ImportError:
     from bot import (
         format_conjugation_message,
@@ -39,6 +45,12 @@ except ImportError:
         SUPPORTED_MOODS,
     )
     from lingolia import normalize_verb, get_conjugation
+    from pedagogy import (
+        get_verb_study_data,
+        format_student_study_card,
+        format_examples_and_synonyms,
+        infer_verb_group,
+    )
 
 
 class TestBotLogic(unittest.TestCase):
@@ -331,6 +343,57 @@ class TestBotLogic(unittest.TestCase):
         self.assertIn("MessageHandler", handler_types)
         self.assertIn("CallbackQueryHandler", handler_types)
         self.assertIn("InlineQueryHandler", handler_types)
+
+
+    # -----------------------------------------------------------------------
+    # Bilingual Pedagogical & Student Learning Tests
+    # -----------------------------------------------------------------------
+
+    def test_pedagogy_curated_verb(self):
+        """Test curated verb study data retrieval (parler)."""
+        data = get_verb_study_data("parler")
+        self.assertEqual(data["verb"], "parler")
+        self.assertEqual(data["meaning_en"], "To speak, to talk")
+        self.assertIn("1er groupe", data["group"])
+        self.assertGreaterEqual(len(data["synonyms"]), 3)
+        self.assertGreaterEqual(len(data["examples"]), 2)
+
+    def test_pedagogy_dynamic_inference(self):
+        """Test morphological inference for arbitrary verbs."""
+        er_data = infer_verb_group("danser")
+        self.assertIn("1er groupe", er_data["group_fr"])
+        self.assertEqual(er_data["auxiliaire"], "avoir")
+
+        refl_data = infer_verb_group("se coucher")
+        self.assertTrue(refl_data["is_reflexive"])
+        self.assertEqual(refl_data["auxiliaire"], "être")
+
+    def test_format_student_study_card(self):
+        """Test student study guide formatting with tips and bilingual guides."""
+        card = format_student_study_card("parler", self.sample_verb_data)
+        self.assertIn("FICHE ÉTUDIANT : PARLER", card)
+        self.assertIn("To speak, to talk", card)
+        self.assertIn("Conseil Pédagogique / Student Study Tip", card)
+        self.assertIn("Guide Pratique des 4 Modes", card)
+
+    def test_format_examples_and_synonyms(self):
+        """Test synonyms list and bilingual contextual example sentences."""
+        ex_card = format_examples_and_synonyms("parler", self.sample_verb_data)
+        self.assertIn("EXEMPLES & SYNONYMES : PARLER", ex_card)
+        self.assertIn("Synonymes utiles / Related Verbs", ex_card)
+        self.assertIn("discuter", ex_card)
+        self.assertIn("Phrases d'exemples bilingues", ex_card)
+        self.assertIn("🇫🇷", ex_card)
+        self.assertIn("🇬🇧", ex_card)
+
+    def test_keyboard_pedagogy_tabs(self):
+        """Test that Exemples and Student tabs appear on the keyboard."""
+        kb = build_conjugation_keyboard("parler", active_mood="examples")
+        callbacks = {b.callback_data: b.text for row in kb.inline_keyboard for b in row if b.callback_data}
+        self.assertIn("tab:parler:examples", callbacks)
+        self.assertIn("tab:parler:student", callbacks)
+        self.assertIn("✅", callbacks["tab:parler:examples"])
+        self.assertIn("🔸", callbacks["tab:parler:student"])
 
 
 if __name__ == "__main__":

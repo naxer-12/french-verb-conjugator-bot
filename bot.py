@@ -48,12 +48,26 @@ try:
         get_conjugation,
         autocomplete,
     )
+    from french_verb_conjugator_bot.pedagogy import (
+        MOOD_GUIDES,
+        TENSE_GUIDES,
+        get_verb_study_data,
+        format_student_study_card,
+        format_examples_and_synonyms,
+    )
 except ImportError:
     from lingolia import (
         LingoliaScraper,
         normalize_verb,
         get_conjugation,
         autocomplete,
+    )
+    from pedagogy import (
+        MOOD_GUIDES,
+        TENSE_GUIDES,
+        get_verb_study_data,
+        format_student_study_card,
+        format_examples_and_synonyms,
     )
 
 logger = logging.getLogger(__name__)
@@ -98,20 +112,8 @@ def get_bot_token() -> str:
 def format_conjugation_message(data: Dict[str, Any], mood: str = "Indicatif") -> str:
     """
     Formats verb conjugation data into a Telegram HTML message for the specified mood.
-
-    Structure:
-    📖 <b>CONJUGAISON : <VERB_UPPER></b>
-    ━━━━━━━━━━━━━━━━━━━━
-    📌 <b>Formes non conjuguées</b>
-    • <b>Infinitif :</b> ...
-    • <b>Participe présent :</b> ...
-    • <b>Participe passé :</b> ...
-    • <b>Auxiliaire :</b> ...
-    ━━━━━━━━━━━━━━━━━━━━
-    🔹 <b>MODE <MOOD_UPPER></b>
-
-    🕒 <b><TENSE_NAME></b>
-    <code><subject_padded>  <verb_form></code>
+    Includes non-conjugated forms, English meaning/level, bilingual mood/tense pedagogical
+    explanations, and monospaced column-aligned verb conjugations.
     """
     if not data:
         return ""
@@ -123,6 +125,10 @@ def format_conjugation_message(data: Dict[str, Any], mood: str = "Indicatif") ->
     ppas_escaped = html.escape(data.get("participe_passe") or "-", quote=False)
     aux_escaped = html.escape(data.get("auxiliaire") or "-", quote=False)
 
+    study = get_verb_study_data(infinitif, data)
+    meaning_en = html.escape(study.get("meaning_en", ""), quote=False)
+    group = html.escape(study.get("group", ""), quote=False)
+
     lines: List[str] = [
         f"📖 <b>CONJUGAISON : {inf_upper}</b>",
         DIVIDER,
@@ -131,9 +137,20 @@ def format_conjugation_message(data: Dict[str, Any], mood: str = "Indicatif") ->
         f"• <b>Participe présent :</b> {ppres_escaped}",
         f"• <b>Participe passé :</b> {ppas_escaped}",
         f"• <b>Auxiliaire :</b> {aux_escaped}",
-        DIVIDER,
-        f"🔹 <b>MODE {html.escape(mood.upper(), quote=False)}</b>",
     ]
+    if meaning_en:
+        lines.append(f"• 🇬🇧 <b>Meaning :</b> <i>{meaning_en}</i>")
+    if group:
+        lines.append(f"• 🏷️ <b>Groupe :</b> <i>{group}</i>")
+
+    lines.append(DIVIDER)
+    lines.append(f"🔹 <b>MODE {html.escape(mood.upper(), quote=False)}</b>")
+
+    mood_guide = MOOD_GUIDES.get(mood)
+    if mood_guide:
+        badge = html.escape(mood_guide["badge"], quote=False)
+        en_hint = html.escape(mood_guide["en"], quote=False)
+        lines.append(f"<i>💡 {badge} — {en_hint}</i>")
 
     mood_dict = data.get("moods", {}).get(mood) or data.get(mood, {})
     if not mood_dict:
@@ -141,7 +158,13 @@ def format_conjugation_message(data: Dict[str, Any], mood: str = "Indicatif") ->
         return "\n".join(lines)
 
     for tense_name, rows in mood_dict.items():
-        lines.append(f"\n🕒 <b>{html.escape(tense_name, quote=False)}</b>")
+        tense_guide = TENSE_GUIDES.get(tense_name)
+        if tense_guide:
+            t_en = html.escape(tense_guide["en"], quote=False)
+            lines.append(f"\n🕒 <b>{html.escape(tense_name, quote=False)}</b> <i>• {t_en}</i>")
+        else:
+            lines.append(f"\n🕒 <b>{html.escape(tense_name, quote=False)}</b>")
+
         if rows:
             max_sub_len = max([len(s) for s, _ in rows] + [8])
             for subject, verb_form in rows:
@@ -264,15 +287,16 @@ def build_conjugation_keyboard(
 ) -> InlineKeyboardMarkup:
     """
     Builds the interactive inline keyboard with tab buttons for the 4 moods,
-    'Tout afficher', and external link to Lingolia.
-    Active tab is marked with '✅ <Mood>', inactive with '🔸 <Mood>'.
+    'Exemples & Synonymes', 'Fiche Étudiant', 'Tout afficher', and external link to Lingolia.
+    Active tab is marked with '✅ <Name>', inactive with '🔸 <Name>'.
     """
     clean_verb = normalize_verb(verb)
     lingolia_url = url or f"{DEFAULT_LINGOLIA_URL}?verb={urllib.parse.quote(clean_verb)}"
 
-    def btn_label(m: str) -> str:
+    def btn_label(m: str, custom_label: Optional[str] = None) -> str:
+        text = custom_label or m
         prefix = "✅" if active_mood.lower() == m.lower() else "🔸"
-        return f"{prefix} {m}"
+        return f"{prefix} {text}"
 
     row1 = [
         InlineKeyboardButton(
@@ -298,6 +322,17 @@ def build_conjugation_keyboard(
 
     row3 = [
         InlineKeyboardButton(
+            text=btn_label("examples", "💬 Exemples & Synonymes"),
+            callback_data=f"tab:{clean_verb}:examples",
+        ),
+        InlineKeyboardButton(
+            text=btn_label("student", "🎓 Fiche Étudiant"),
+            callback_data=f"tab:{clean_verb}:student",
+        ),
+    ]
+
+    row4 = [
+        InlineKeyboardButton(
             text="📚 Tout afficher",
             callback_data=f"all:{clean_verb}",
         ),
@@ -307,7 +342,7 @@ def build_conjugation_keyboard(
         ),
     ]
 
-    return InlineKeyboardMarkup([row1, row2, row3])
+    return InlineKeyboardMarkup([row1, row2, row3, row4])
 
 
 def build_suggestions_keyboard(suggestions: List[str]) -> InlineKeyboardMarkup:
@@ -468,7 +503,16 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 await query.answer("Verbe introuvable sur Lingolia.", show_alert=True)
                 return
 
-            new_text = format_conjugation_message(conj_data, mood=mood)
+            if mood.lower() == "examples":
+                new_text = format_examples_and_synonyms(verb, conj_data)
+                alert_text = "💬 Exemples & Synonymes"
+            elif mood.lower() == "student":
+                new_text = format_student_study_card(verb, conj_data)
+                alert_text = "🎓 Fiche Étudiant"
+            else:
+                new_text = format_conjugation_message(conj_data, mood=mood)
+                alert_text = f"Mode {mood}"
+
             new_kb = build_conjugation_keyboard(verb, active_mood=mood, url=conj_data.get("url"))
 
             try:
@@ -476,7 +520,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             except telegram.error.BadRequest as e:
                 if "Message is not modified" not in str(e):
                     logger.warning("Could not edit message text on tab switch: %s", e)
-            await query.answer(f"Mode {mood}")
+            await query.answer(alert_text)
 
     elif data.startswith("all:"):
         parts = data.split(":", 1)
@@ -556,9 +600,9 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         if isinstance(data, dict) and data:
             msg_text = format_conjugation_message(data, mood="Indicatif")
             kb = build_conjugation_keyboard(verb, active_mood="Indicatif", url=data.get("url"))
-            ppas = data.get("participe_passe", "")
-            aux = data.get("auxiliaire", "")
-            desc = f"Participe: {ppas} • Auxiliaire: {aux} | Appuyez pour voir la conjugaison complète"
+            study = get_verb_study_data(verb, data)
+            meaning = study.get("meaning_en", "")
+            desc = f"🇬🇧 {meaning} • {study.get('group', '')} | Appuyez pour afficher"
         else:
             msg_text = (
                 f"📖 <b>CONJUGAISON : {html.escape(verb.upper(), quote=False)}</b>\n\n"
