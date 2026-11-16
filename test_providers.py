@@ -90,6 +90,35 @@ class TestProviders(unittest.TestCase):
         self.assertIn("frenchdictionary.com", res["url"])
         mock_fallback.get_conjugation.assert_called_with("être")
 
+    def test_french_dictionary_provider_scrapes_examples(self):
+        """Test FrenchDictionaryProvider scraping examples directly."""
+        mock_fallback = MagicMock()
+        mock_fallback.get_conjugation.return_value = {"verb": "travailler"}
+        mock_fallback.get_study_data.return_value = {"meaning_en": "To work", "examples": []}
+
+        mock_scraper = MagicMock()
+        mock_scraper.fetch_word_examples.return_value = (
+            True,
+            [("Je dois travailler.", "I have to work.")],
+            "OK",
+        )
+        mock_scraper.fetch_word_translation.return_value = (
+            True,
+            {"word": "travailler", "definitions": ["to work"]},
+            "OK",
+        )
+
+        provider = FrenchDictionaryProvider(fallback_provider=mock_fallback, scraper=mock_scraper)
+        res = provider.get_conjugation("travailler")
+        self.assertIsNotNone(res)
+        self.assertEqual(res["url"], "https://www.frenchdictionary.com/examples/travailler?lang=fr")
+        self.assertEqual(res["scraped_examples"], [("Je dois travailler.", "I have to work.")])
+
+        study = provider.get_study_data("travailler", res)
+        self.assertEqual(study["examples_source"], "frenchdictionary.com")
+        self.assertEqual(study["examples"][0]["fr"], "Je dois travailler.")
+        self.assertEqual(study["examples"][0]["en"], "I have to work.")
+
     def test_hybrid_provider_enrichment(self):
         """Test HybridProvider provides both conjugations and enriched study data."""
         mock_lingolia = MagicMock()

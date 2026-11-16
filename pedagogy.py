@@ -759,9 +759,14 @@ def format_examples_and_synonyms(verb: str, conjugation_data: Optional[Dict[str,
     examples = study.get("examples", [])
     if examples:
         for idx, ex in enumerate(examples, 1):
-            tense = html.escape(ex.get("tense", "Exemple"), quote=False)
-            fr_text = html.escape(ex.get("fr", ""), quote=False)
-            en_text = html.escape(ex.get("en", ""), quote=False)
+            if isinstance(ex, (list, tuple)):
+                tense = f"Exemple #{idx}"
+                fr_text = html.escape(str(ex[0]), quote=False)
+                en_text = html.escape(str(ex[1]), quote=False)
+            else:
+                tense = html.escape(ex.get("tense", f"Exemple #{idx}"), quote=False)
+                fr_text = html.escape(ex.get("fr", ""), quote=False)
+                en_text = html.escape(ex.get("en", ""), quote=False)
             lines.append(f"<b>{idx}️⃣ {tense}</b>")
             lines.append(f"🇫🇷 <i>« {fr_text} »</i>")
             lines.append(f"🇬🇧 <i>\"{en_text}\"</i>")
@@ -770,6 +775,9 @@ def format_examples_and_synonyms(verb: str, conjugation_data: Optional[Dict[str,
         lines.append("🇫🇷 <i>« La pratique régulière est la clé de la maîtrise. »</i>")
         lines.append("🇬🇧 <i>\"Regular practice is the key to mastery.\"</i>")
         lines.append("")
+
+    if study.get("cf_url"):
+        lines.append(f"🔗 <a href=\"{study['cf_url']}\">Consulter plus d'exemples sur FrenchDictionary.com</a>\n")
 
     lines.append("<i>💡 Conseil : Répétez chaque phrase à voix haute pour mémoriser le rythme oral.</i>")
     return "\n".join(lines).strip()

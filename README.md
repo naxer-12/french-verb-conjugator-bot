@@ -37,6 +37,23 @@ Built with pure Python standard library scraping (`urllib`, `http.cookiejar`, `h
 
 ---
 
+## Pluggable Provider Architecture & FrenchDictionary.com Backend
+
+This project features a pluggable conjugation & examples provider architecture:
+- **`frenchdictionary` (Default on `feature/frenchdictionary-only`)**: Dedicated scraper targeting `https://www.frenchdictionary.com/examples/<word>?lang=fr` (e.g. `travailler`), `/translate/<word>`, and `/conjugate/<word>`.
+- **`hybrid`**: Combines Lingolia scraping with curated student pedagogy, morphological inference, synonyms, and bilingual examples.
+- **`lingolia`**: Direct Lingolia Français conjugator scraper.
+
+### FrenchDictionary.com Dedicated Branch (`feature/frenchdictionary-only`)
+On this branch, typing any word or using `/examples <word>` directly targets:
+```
+https://www.frenchdictionary.com/examples/<word>?lang=fr
+```
+- **Example Extraction**: Parses bilingual French/English sentence pairs (`FrenchDictionaryHTMLParser`).
+- **Cloudflare Turnstile Handling**: When queried from datacenter/cloud IPs, `frenchdictionary.com` serves an `HTTP 403 Forbidden` anti-bot challenge (`cf-mitigated: challenge`). The bot transparently notifies the user, provides the direct clickable link to open the page in their browser, and presents the formatted educational study card.
+
+---
+
 ## Features
 
 - **⚡ Instant Conjugation**: Send any French verb as a plain message (e.g., `aller`, `finir`, `se lever`) or use `/conj <verbe>`.

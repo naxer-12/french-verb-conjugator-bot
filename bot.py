@@ -50,6 +50,9 @@ try:
         get_conjugation,
         autocomplete,
     )
+    from french_verb_conjugator_bot.frenchdictionary_scraper import (
+        FrenchDictionaryScraper,
+    )
     from french_verb_conjugator_bot.pedagogy import (
         MOOD_GUIDES,
         TENSE_GUIDES,
@@ -69,6 +72,10 @@ except ImportError:
         get_conjugation,
         autocomplete,
     )
+    try:
+        from frenchdictionary_scraper import FrenchDictionaryScraper
+    except ImportError:
+        FrenchDictionaryScraper = None
     from pedagogy import (
         MOOD_GUIDES,
         TENSE_GUIDES,
@@ -422,7 +429,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "🔹 <b>Commandes disponibles :</b>\n"
         "• <code>/start</code> : Afficher le message d'accueil\n"
         "• <code>/help</code> : Afficher ce guide d'aide\n"
-        "• <code>/conj &lt;verbe&gt;</code> : Conjuguer un verbe français\n\n"
+        "• <code>/conj &lt;verbe&gt;</code> : Conjuguer un verbe français\n"
+        "• <code>/examples &lt;mot&gt;</code> : Extraire les exemples depuis FrenchDictionary.com\n\n"
         "🔹 <b>Modes pris en charge :</b>\n"
         "• <b>Indicatif</b> (Présent, Passé composé, Imparfait, Plus-que-parfait, Passé simple, Futur simple, etc.)\n"
         "• <b>Conditionnel</b> (Présent, Passé)\n"
@@ -478,6 +486,68 @@ async def conj_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     verb_query = " ".join(context.args)
     await handle_verb_lookup(update.message, verb_query)
+
+
+async def examples_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Fetches example sentences specifically from:
+    https://www.frenchdictionary.com/examples/<word>?lang=fr
+    """
+    if not update.message:
+        return
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ Veuillez préciser un mot ou un verbe.\n<i>Exemple :</i> <code>/examples travailler</code>",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+    word_query = " ".join(context.args).strip()
+    norm = normalize_verb(word_query)
+    target_url = f"https://www.frenchdictionary.com/examples/{urllib.parse.quote(norm)}?lang=fr"
+
+    scraper = FrenchDictionaryScraper() if FrenchDictionaryScraper else None
+    if scraper:
+        success, examples, status = await asyncio.to_thread(scraper.fetch_word_examples, norm)
+    else:
+        success, examples, status = False, [], "Scraper unavailable"
+
+    if success and examples:
+        lines = [
+            f"💬 <b>EXEMPLES FRENCHDICTIONARY : {html.escape(norm.upper(), quote=False)}</b>",
+            DIVIDER,
+            f"🔗 <a href=\"{target_url}\">frenchdictionary.com/examples/{html.escape(norm, quote=False)}?lang=fr</a>\n",
+        ]
+        for idx, (fr_text, en_text) in enumerate(examples[:10], 1):
+            lines.append(f"<b>{idx}️⃣ Exemple #{idx}</b>")
+            lines.append(f"🇫🇷 <i>« {html.escape(fr_text, quote=False)} »</i>")
+            lines.append(f"🇬🇧 <i>\"{html.escape(en_text, quote=False)}\"</i>\n")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(text="🌐 Ouvrir sur FrenchDictionary.com", url=target_url)]
+        ])
+        await update.message.reply_text(
+            text="\n".join(lines).strip(),
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    else:
+        study_card = format_examples_and_synonyms(norm)
+        cf_notice = (
+            f"⚠️ <b>frenchdictionary.com Anti-Bot Notice</b>\n"
+            f"La page directe <code>{target_url}</code> est protégée par la vérification Cloudflare Turnstile (HTTP 403 Challenge).\n"
+            f"🔗 <a href=\"{target_url}\">Cliquer ici pour ouvrir la page directement</a>\n\n"
+            f"{DIVIDER}\n"
+            f"{study_card}"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(text="🌐 Ouvrir sur FrenchDictionary.com", url=target_url)]
+        ])
+        await update.message.reply_text(
+            text=cf_notice,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
 
 
 async def text_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -709,6 +779,8 @@ def build_application(token: Optional[str] = None) -> Application:
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("conj", conj_command))
+    app.add_handler(CommandHandler("examples", examples_command))
+    app.add_handler(CommandHandler("exemples", examples_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
     app.add_handler(CallbackQueryHandler(callback_query_handler))
     app.add_handler(InlineQueryHandler(inline_query_handler))

@@ -352,6 +352,15 @@ class TestBotLogic(unittest.TestCase):
         self.assertIn("CallbackQueryHandler", handler_types)
         self.assertIn("InlineQueryHandler", handler_types)
 
+        commands = [
+            list(h.commands)[0]
+            for group in app.handlers.values()
+            for h in group
+            if hasattr(h, "commands")
+        ]
+        self.assertIn("examples", commands)
+        self.assertIn("exemples", commands)
+
 
     # -----------------------------------------------------------------------
     # Bilingual Pedagogical & Student Learning Tests
