@@ -647,7 +647,8 @@ def get_verb_study_data(verb: str, conjugation_data: Optional[Dict[str, Any]] = 
         aux = conjugation_data.get("auxiliaire")
 
     clean_verb = canonical
-    meaning_en = f"To {clean_verb.replace('se ', '').replace('s\'', '')}"
+    base_name = clean_verb.replace("se ", "").replace("s'", "")
+    meaning_en = f"To {base_name}"
     meaning_fr = f"Action d'accomplir le verbe {clean_verb}"
 
     return {
