@@ -588,6 +588,50 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 # Application Initialization & Entry Point
 # ---------------------------------------------------------------------------
 
+async def start_health_server(app: Application) -> None:
+    """
+    Starts a minimal async HTTP health check server if the PORT environment variable
+    is defined (automatically provided by cloud platforms like Render).
+    Allows running the bot as a free Render Web Service.
+    """
+    port_str = os.getenv("PORT")
+    if not port_str:
+        return
+
+    try:
+        port = int(port_str)
+    except ValueError:
+        port = 10000
+
+    async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            await reader.readline()
+            body = b"OK - French Verb Conjugator Bot is running!\n"
+            header = (
+                f"HTTP/1.1 200 OK\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                f"Connection: close\r\n\r\n"
+            ).encode("utf-8")
+            writer.write(header + body)
+            await writer.drain()
+        except Exception:
+            pass
+        finally:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+
+    try:
+        server = await asyncio.start_server(handle_client, "0.0.0.0", port)
+        logger.info("Health check HTTP server started on 0.0.0.0:%d (Render compatible)", port)
+        app.bot_data["health_server"] = server
+    except Exception as e:
+        logger.warning("Could not start health check HTTP server on port %d: %s", port, e)
+
+
 def build_application(token: Optional[str] = None) -> Application:
     """
     Builds and configures the Telegram Application with all command,
@@ -602,7 +646,13 @@ def build_application(token: Optional[str] = None) -> Application:
         write_timeout=20.0,
         pool_timeout=20.0,
     )
-    app = Application.builder().token(token).request(request).build()
+    app = (
+        Application.builder()
+        .token(token)
+        .request(request)
+        .post_init(start_health_server)
+        .build()
+    )
 
     # Register handlers
     app.add_handler(CommandHandler("start", start_command))
