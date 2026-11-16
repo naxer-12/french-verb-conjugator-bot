@@ -30,6 +30,7 @@ from telegram import (
     Update,
 )
 from telegram.constants import ParseMode
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -595,7 +596,13 @@ def build_application(token: Optional[str] = None) -> Application:
     if token is None:
         token = get_bot_token()
 
-    app = Application.builder().token(token).build()
+    request = HTTPXRequest(
+        connect_timeout=20.0,
+        read_timeout=20.0,
+        write_timeout=20.0,
+        pool_timeout=20.0,
+    )
+    app = Application.builder().token(token).request(request).build()
 
     # Register handlers
     app.add_handler(CommandHandler("start", start_command))
